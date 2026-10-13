@@ -9,13 +9,18 @@ function openScreen(screenName) {
         'profile': 'screen-profile'
     };
 
+    const targetId = screens[screenName];
+    if (!targetId) {
+        return;
+    }
+
     // Скрыть все экраны
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
     // Показать целевой
-    const targetId = screens[screenName];
-    if (targetId) {
-        document.getElementById(targetId).classList.add('active');
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.classList.add('active');
     }
 
     // Обновление активной вкладки в нижнем меню
@@ -31,25 +36,43 @@ function openScreen(screenName) {
     }
 }
 
+let analysisIntervalId = null;
+let analysisTimeoutId = null;
+
 // Запуск симуляции анализа
 function triggerAnalysis() {
+    if (analysisIntervalId) {
+        clearInterval(analysisIntervalId);
+    }
+    if (analysisTimeoutId) {
+        clearTimeout(analysisTimeoutId);
+    }
+
     openScreen('analysis');
 
     const fill = document.getElementById('analysis-fill');
     const pct = document.getElementById('analysis-pct');
     let percent = 20;
 
-    const interval = setInterval(() => {
+    fill && (fill.style.width = percent + '%');
+    pct && (pct.textContent = percent + '%');
+
+    analysisIntervalId = setInterval(() => {
         percent += 20;
         if (percent >= 100) {
             percent = 100;
-            clearInterval(interval);
-            setTimeout(() => {
+            clearInterval(analysisIntervalId);
+            analysisIntervalId = null;
+            analysisTimeoutId = setTimeout(() => {
                 openScreen('verdict');
             }, 450);
         }
-        fill.style.width = percent + '%';
-        pct.textContent = percent + '%';
+        if (fill) {
+            fill.style.width = percent + '%';
+        }
+        if (pct) {
+            pct.textContent = percent + '%';
+        }
     }, 150);
 }
 
@@ -64,33 +87,58 @@ function formatTime(sec) {
     return `${m}:${s}`;
 }
 
+function syncTimerUi() {
+    const display = document.getElementById('time-text');
+    const btn = document.getElementById('play-pause-btn');
+    if (display) {
+        display.textContent = formatTime(timerSeconds);
+    }
+    if (btn) {
+        btn.textContent = timerRunning ? '❚❚' : '▶';
+    }
+}
+
 function toggleTimer() {
     const btn = document.getElementById('play-pause-btn');
+    if (!btn) {
+        return;
+    }
+
     if (timerRunning) {
         clearInterval(timerInterval);
+        timerInterval = null;
         timerRunning = false;
         btn.textContent = '▶';
-    } else {
-        timerRunning = true;
-        btn.textContent = '❚❚';
-        timerInterval = setInterval(() => {
-            if (timerSeconds > 0) {
-                timerSeconds--;
-                document.getElementById('time-text').textContent = formatTime(timerSeconds);
-            } else {
-                clearInterval(timerInterval);
-                timerRunning = false;
-                btn.textContent = '▶';
-                alert('Время жарки вышло! Пора переворачивать клубни!');
-            }
-        }, 1000);
+        return;
     }
+
+    if (timerSeconds <= 0) {
+        timerSeconds = 240;
+    }
+
+    timerRunning = true;
+    btn.textContent = '❚❚';
+    timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+            timerSeconds--;
+            const display = document.getElementById('time-text');
+            if (display) {
+                display.textContent = formatTime(timerSeconds);
+            }
+        } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerRunning = false;
+            btn.textContent = '▶';
+            alert('Время жарки вышло! Пора переворачивать клубни!');
+        }
+    }, 1000);
 }
 
 function resetTimer() {
     clearInterval(timerInterval);
+    timerInterval = null;
     timerRunning = false;
     timerSeconds = 240;
-    document.getElementById('time-text').textContent = '04:00';
-    document.getElementById('play-pause-btn').textContent = '▶';
+    syncTimerUi();
 }
