@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BulbaScan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ==================== ЭКРАН 0: ГЛАВНЫЙ / МЕНЮ ВЫБОРА ==================== -->
+    <section class="screen active" id="screen-home">
+        <!-- Верхняя часть -->
+        <header class="header">
+            <div class="brand">
+                <div class="logo">🥔</div>
+                <span>BulbaScan</span>
+            </div>
+            <button class="profile-btn" onclick="openScreen('profile')" aria-label="Профиль">
+                <span class="profile-head"></span>
+                <span class="profile-body"></span>
+            </button>
+        </header>
+
+        <!-- Основной контент -->
+        <main class="content">
+            <div class="goal-title">
+                <span>КУЛИНАРНАЯ ЦЕЛЬ</span>
+                <h1>Что будем готовить?</h1>
+            </div>
+
+            <button class="recipe-tag">
+                Драники
+                <span class="arrow-down">⌄</span>
+            </button>
+
+            <!-- Область сканирования -->
+            <div class="scanner-card">
+                <div class="scan-area">
+                    <div class="scan-circle"></div>
+                    <div class="potato">🥔</div>
+                </div>
+                <div class="scanner-info">
+                    <span>✨ AI калибровка</span>
+                    <span>Автофокус: вкл</span>
+                </div>
+            </div>
+
+            <!-- Кнопка камеры -->
+            <button class="scan-button" onclick="openScreen('camera')">
+                <span class="camera-icon">
+                    <span class="camera-lens"></span>
+                </span>
+                <span>Сканировать клубень</span>
+            </button>
+
+            <button class="gallery-button">
+                Выбрать снимок из галереи
+            </button>
+        </main>
+    </section>
+
+    <!-- ==================== ЭКРАН 1: ВИДОИСКАТЕЛЬ КАМЕРЫ ==================== -->
+    <section class="screen" id="screen-camera">
+        <div class="camera-screen-body">
+            <div class="cam-top-bar">
+                <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
+                <button class="icon-circle-btn flash-circle-btn">⚡</button>
+            </div>
+
+            <div class="cam-target-area">
+                <div class="target-dots-oval">
+                    <div class="potato-mockup-cutout">
+                        <span class="canva-watermark">Canva</span>
+                        <div class="mockup-eye e1"></div>
+                        <div class="mockup-eye e2"></div>
+                        <div class="mockup-eye e3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cam-bottom-bar">
+                <button class="cam-side-btn">🖼️</button>
+                <button class="shutter-btn" onclick="triggerAnalysis()">
+                    <span class="shutter-inner"></span>
+                </button>
+                <button class="cam-side-btn">🔪</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 2: АНАЛИЗ КЛУБНЯ ==================== -->
+    <section class="screen" id="screen-analysis">
+        <div class="analysis-body">
+            <div class="screen-heading">
+                <h2>Анализ клубня</h2>
+                <p>Сверка с эталонными профилями сортов</p>
+            </div>
+
+            <div class="analysis-card">
+                <div class="potato-scan-subject">
+                    <div class="subject-speckles"></div>
+                </div>
+                <div class="laser-scanner-line"></div>
+                <div class="analysis-tag">Текстура: шероховатая</div>
+            </div>
+
+            <div class="analysis-steps">
+                <div class="analysis-status-row">
+                    <span>Нейросеть рассчитывает крахмал...</span>
+                    <span class="highlight-percent" id="analysis-pct">84%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar-fill" id="analysis-fill" style="width: 84%;"></div>
+                </div>
+                <div class="cancel-text-wrap">
+                    <button class="link-cancel-btn" onclick="openScreen('camera')">Отмена</button>
+                </div>
+
+                <ul class="checklist">
+                    <li class="check-ok">✔ форма и геометрия зафиксированы</li>
+                    <li class="check-ok">✔ глубина залегания глазков оценена</li>
+                    <li class="check-pending">⏳ определение кулинарного типа</li>
+                </ul>
+            </div>
+
+            <div class="fact-note-box">
+                Факт: Эксперимент провели в 1995 году на борту американского космического корабля с использованием технологий космического агентства.
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 3: ВЕРДИКТ СКАНЕРА ==================== -->
+    <section class="screen" id="screen-verdict">
+        <div class="verdict-body">
+            <div class="verdict-header">
+                <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
+                <h2>Вердикт сканера</h2>
+                <div style="width: 36px;"></div>
+            </div>
+
+            <div class="card-verdict-main">
+                <div class="verdict-main-meta">
+                    <span class="badge-pill">Точность 96%</span>
+                    <h3>“МАНИФЕСТ”</h3>
+                    <p class="type-caption">Кулинарный тип: <strong>B-C (универсальный)</strong></p>
+                </div>
+                <div class="potato-icon-card">🥔</div>
+            </div>
+
+            <div class="dranik-eval-card">
+                <div class="eval-top">
+                    <span class="eval-title">Оценка для драников</span>
+                    <span class="score-pill">★ 9/10</span>
+                </div>
+                <p class="eval-text">
+                    Отличный выбор! Тесто умеренно плотное, оладьи не расползаются на сковороде, сохраняют упругость и дают красивую золотистую корочку.
+                </p>
+            </div>
+
+            <div class="metric-tiles-row">
+                <div class="metric-tile">
+                    <span class="tile-caption">КРАХМАЛ</span>
+                    <span class="tile-val">~15%</span>
+                    <span class="tile-status green">Оптимально</span>
+                </div>
+                <div class="metric-tile">
+                    <span class="tile-caption">МЯКОТЬ</span>
+                    <span class="tile-val">Светло-желтая</span>
+                    <span class="tile-status gray">Не темнеет</span>
+                </div>
+            </div>
+
+            <div class="verdict-actions">
+                <button class="btn-primary-action" onclick="openScreen('timer')">
+                    ⏱ Запустить таймер идеальной жарки
+                </button>
+                <button class="btn-secondary-action" onclick="openScreen('camera')">
+                    Сканировать другой клубень
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 4: ТАЙМЕР ==================== -->
+    <section class="screen" id="screen-timer">
+        <div class="timer-body">
+            <div class="timer-top-bar">
+                <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
+                <div class="timer-titles">
+                    <h2>Таймер</h2>
+                    <p>Ваш помощник со временем готовки</p>
+                </div>
+                <div style="width: 36px;"></div>
+            </div>
+
+            <div class="timer-clock-container">
+                <div class="clock-orange-ring">
+                    <div class="clock-display" id="time-text">04:00</div>
+                    <div class="clock-subtext">Жарка 1 стороны</div>
+                </div>
+
+                <div class="timer-controls">
+                    <button class="clock-btn" id="play-pause-btn" onclick="toggleTimer()">▶</button>
+                    <button class="clock-btn" onclick="resetTimer()">■</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 5: ПРОФИЛЬ ==================== -->
+    <section class="screen" id="screen-profile">
+        <div class="profile-screen-body">
+            <div class="profile-top-bar">
+                <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
+                <h2>Профиль</h2>
+                <button class="settings-btn">⚙</button>
+            </div>
+
+            <div class="profile-user-info">
+                <div class="avatar-large">👤</div>
+                <h3 class="user-display-name">Username</h3>
+            </div>
+
+            <div class="profile-divider-thick"></div>
+
+            <h4 class="achievements-heading">Отчивки</h4>
+
+            <div class="achievements-grid">
+                <div class="achievement-card"><span>🥔</span></div>
+                <div class="achievement-card"><span>🥞</span></div>
+                <div class="achievement-card"><span>🔥</span></div>
+                <div class="achievement-card"><span>⭐</span></div>
+                <div class="achievement-card"><span>🚜</span></div>
+                <div class="achievement-card"><span>👑</span></div>
+            </div>
+
+            <div class="profile-divider-thin"></div>
+
+            <div class="credentials-block">
+                <div class="cred-row">
+                    <span>Password: **********</span>
+                    <button class="btn-change-pwd">Сменить пароль</button>
+                </div>
+                <div class="cred-row">
+                    <span>Gmail: **********</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Нижняя навигация (Общая для приложения) -->
+    <nav class="bottom-nav">
+        <button class="nav-item" id="nav-btn-scanner" onclick="openScreen('camera')">
+            <span class="nav-icon scanner-icon">⛶</span>
+            <span>Сканер</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-sorts" onclick="openScreen('verdict')">
+            <span class="nav-icon book-icon">▤</span>
+            <span>Сорта</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-timer" onclick="openScreen('timer')">
+            <span class="nav-icon timer-icon">⏱</span>
+            <span>Таймер</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-history" onclick="openScreen('profile')">
+            <span class="nav-icon history-icon">📁</span>
+            <span>История</span>
+        </button>
+    </nav>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

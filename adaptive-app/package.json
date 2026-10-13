@@ -1,0 +1,17 @@
+{
+  "name": "mobile",
+  "version": "1.0.0",
+  "description": "no",
+  "license": "MIT",
+  "author": "ya",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node cow.js",
+    "test": "npm "
+  },
+  "dependencies": {
+    "cowsay": "^1.6.0"
+  }
+  
+}
