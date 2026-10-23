@@ -1,0 +1,251 @@
+// Функция вызова виброотклика
+function haptic(type) {
+    if (window.AndroidNative && window.AndroidNative.triggerHaptic) {
+        window.AndroidNative.triggerHaptic(type);
+    }
+}
+
+// Переключение между экранами
+function openScreen(screenName) {
+    haptic('click');
+    const screens = {
+        'home': 'screen-home',
+        'camera': 'screen-camera',
+        'analysis': 'screen-analysis',
+        'verdict': 'screen-verdict',
+        'timer': 'screen-timer',
+        'profile': 'screen-profile'
+    };
+
+    const targetId = screens[screenName];
+    if (!targetId) return;
+
+    // Скрыть все экраны
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+    // Показать целевой
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.classList.add('active');
+    }
+
+    // Обновление активной вкладки в нижнем меню
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    if (screenName === 'camera' || screenName === 'home') {
+        document.getElementById('nav-btn-scanner')?.classList.add('active');
+    } else if (screenName === 'verdict') {
+        document.getElementById('nav-btn-sorts')?.classList.add('active');
+    } else if (screenName === 'timer') {
+        document.getElementById('nav-btn-timer')?.classList.add('active');
+    } else if (screenName === 'profile') {
+        document.getElementById('nav-btn-history')?.classList.add('active');
+    }
+}
+
+// Управление выпадающим списком кулинарных целей
+function toggleRecipeDropdown(event) {
+    if (event) event.stopPropagation();
+    haptic('click');
+    const dropdown = document.getElementById('recipe-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('open');
+    }
+}
+
+function selectRecipeOption(recipeName) {
+    haptic('click');
+    const textElem = document.getElementById('selected-recipe-text');
+    if (textElem) {
+        textElem.textContent = recipeName;
+    }
+
+    document.querySelectorAll('.recipe-option').forEach(opt => {
+        if (opt.textContent.includes(recipeName)) {
+            opt.classList.add('active');
+        } else {
+            opt.classList.remove('active');
+        }
+    });
+
+    const dropdown = document.getElementById('recipe-dropdown');
+    if (dropdown) {
+        dropdown.classList.remove('open');
+    }
+
+    if (window.AndroidNative && window.AndroidNative.selectRecipe) {
+        window.AndroidNative.selectRecipe(recipeName);
+    }
+}
+
+// Закрывать дропдаун при клике вне его области
+document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.recipe-selector-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        const dropdown = document.getElementById('recipe-dropdown');
+        if (dropdown) {
+            dropdown.classList.remove('open');
+        }
+    }
+});
+
+// Запуск анализа
+function triggerAnalysis() {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.startAnalysis) {
+        openScreen('analysis');
+        window.AndroidNative.startAnalysis();
+    } else {
+        openScreen('analysis');
+        let percent = 20;
+        const fill = document.getElementById('analysis-fill');
+        const pct = document.getElementById('analysis-pct');
+        const interval = setInterval(() => {
+            percent += 20;
+            if (fill) fill.style.width = percent + '%';
+            if (pct) pct.textContent = percent + '%';
+            if (percent >= 100) {
+                clearInterval(interval);
+                setTimeout(() => openScreen('verdict'), 400);
+            }
+        }, 200);
+    }
+}
+
+// Запуск съемки нативной камерой
+function triggerCameraCapture() {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.openCamera) {
+        window.AndroidNative.openCamera();
+    } else {
+        openScreen('camera');
+    }
+}
+
+// Управление таймером
+function toggleTimer() {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.toggleTimer) {
+        window.AndroidNative.toggleTimer();
+    } else {
+        const btn = document.getElementById('play-pause-btn');
+        if (btn) btn.textContent = (btn.textContent === '▶') ? '❚❚' : '▶';
+    }
+}
+
+function resetTimer() {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.resetTimer) {
+        window.AndroidNative.resetTimer();
+    } else {
+        const display = document.getElementById('time-text');
+        if (display) display.textContent = '04:00';
+    }
+}
+
+// ДВУСТОРОННЯЯ СВЯЗЬ: Получение эмиттов State из Kotlin (StateFlow)
+let lastScanProgress = 0;
+
+window.onStateUpdate = function(rawJsonData) {
+    try {
+        const data = (typeof rawJsonData === 'string') ? JSON.parse(rawJsonData) : rawJsonData;
+        if (!data || !data.type) return;
+
+        if (data.type === 'home') {
+            if (data.selectedRecipe) {
+                const textElem = document.getElementById('selected-recipe-text');
+                if (textElem) {
+                    textElem.textContent = data.selectedRecipe;
+                }
+                document.querySelectorAll('.recipe-option').forEach(opt => {
+                    if (opt.textContent.includes(data.selectedRecipe)) {
+                        opt.classList.add('active');
+                    } else {
+                        opt.classList.remove('active');
+                    }
+                });
+            }
+        } else if (data.type === 'timer') {
+            const display = document.getElementById('time-text');
+            const btn = document.getElementById('play-pause-btn');
+            if (display && data.formattedTime) {
+                display.textContent = data.formattedTime;
+                // Пульсация сердцебиения при оставшихся менее 10 секунд
+                if (data.remainingSeconds !== undefined && data.remainingSeconds <= 10 && data.remainingSeconds > 0) {
+                    display.classList.add('heartbeat');
+                } else {
+                    display.classList.remove('heartbeat');
+                }
+            }
+            if (btn && data.isRunning !== undefined) {
+                btn.textContent = data.isRunning ? '❚❚' : '▶';
+            }
+        } else if (data.type === 'analysis') {
+            const fill = document.getElementById('analysis-fill');
+            const pct = document.getElementById('analysis-pct');
+            if (fill) fill.style.width = data.progressPercentage + '%';
+            if (pct) pct.textContent = data.progressPercentage + '%';
+
+            // Тактильный тик при повышении прогресса сканирования
+            if (data.progressPercentage > lastScanProgress && data.progressPercentage % 20 === 0) {
+                haptic('scan_tick');
+            }
+            lastScanProgress = data.progressPercentage;
+
+            // Если анализ завершен, отображаем вердикт из Kotlin и открываем экран вердикта
+            if (data.isComplete && data.verdict) {
+                haptic(data.verdict.score >= 7 ? 'success' : 'error');
+                updateVerdictUi(data.verdict);
+                setTimeout(() => openScreen('verdict'), 450);
+            }
+        } else if (data.type === 'profile') {
+            const nameElem = document.querySelector('.user-display-name');
+            if (nameElem && data.name) {
+                nameElem.textContent = data.name;
+            }
+        }
+    } catch (e) {
+        console.error("Error in onStateUpdate:", e);
+    }
+};
+
+// Обновление элементов карточки вердикта
+function updateVerdictUi(verdict) {
+    const titleElem = document.querySelector('#screen-verdict h3');
+    if (titleElem && verdict.varietyName) {
+        titleElem.textContent = '“' + verdict.varietyName + '”';
+    }
+
+    const typeElem = document.querySelector('#screen-verdict .type-caption strong');
+    if (typeElem && verdict.culinaryType) {
+        typeElem.textContent = verdict.culinaryType;
+    }
+
+    const scoreElem = document.querySelector('#screen-verdict .score-pill');
+    if (scoreElem && verdict.score !== undefined) {
+        scoreElem.textContent = '★ ' + verdict.score + '/10';
+    }
+
+    const textElem = document.querySelector('#screen-verdict .eval-text');
+    if (textElem && verdict.verdictText) {
+        textElem.textContent = verdict.verdictText;
+    }
+
+    const starchElem = document.querySelectorAll('#screen-verdict .tile-val')[0];
+    if (starchElem && verdict.starchPercentage !== undefined) {
+        starchElem.textContent = '~' + verdict.starchPercentage + '%';
+    }
+
+    const fleshElem = document.querySelectorAll('#screen-verdict .tile-val')[1];
+    if (fleshElem && verdict.fleshColor) {
+        fleshElem.textContent = verdict.fleshColor;
+    }
+
+    // Анимация штампа бейджа
+    const badge = document.querySelector('#screen-verdict .badge-pill');
+    if (badge) {
+        badge.classList.remove('stamp-anim');
+        void badge.offsetWidth; // Trigger reflow
+        badge.classList.add('stamp-anim');
+        badge.textContent = verdict.score >= 7 ? 'ПОДХОДИТ' : 'НЕ ПОДХОДИТ';
+    }
+}
