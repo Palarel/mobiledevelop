@@ -254,6 +254,10 @@
                     <button class="btn-change-pwd" onclick="editProfileName()">Сменить</button>
                 </div>
                 <div class="cred-row">
+                    <span>Email: <strong id="user-profile-email">expert@bulbascan.by</strong></span>
+                    <button class="auth-btn" id="auth-action-btn" onclick="handleAuthAction(false)">Войти в аккаунт</button>
+                </div>
+                <div class="cred-row">
                     <span>Тема оформления:</span>
                     <button class="theme-toggle-btn" onclick="toggleTheme(document.body.classList.contains('light-theme'))">🌓 Переключить</button>
                 </div>

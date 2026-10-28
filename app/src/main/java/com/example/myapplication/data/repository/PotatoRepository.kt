@@ -16,7 +16,10 @@ interface PotatoRepository {
     suspend fun deleteScanResult(id: String)
     fun getUserProfile(): Flow<UserProfile>
     suspend fun updateUserProfile(name: String, email: String)
-    fun getAchievements(): List<Achievement>
+    suspend fun login(email: String, password: String): Result<UserProfile>
+    suspend fun register(name: String, email: String, password: String): Result<UserProfile>
+    suspend fun logout()
+    fun getAchievements(): Flow<List<Achievement>>
     fun simulateAnalysis(selectedGoal: String): Flow<Int>
     fun generateScanVerdict(selectedGoal: String): ScanResult
     fun getRecipes(): List<Recipe>

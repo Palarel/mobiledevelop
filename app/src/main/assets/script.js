@@ -98,6 +98,32 @@ function deleteScanHistory(id) {
     }
 }
 
+// Авторизация и выход
+function handleAuthAction(isLoggedIn) {
+    haptic('click');
+    if (isLoggedIn) {
+        if (confirm('Вы уверены, что хотите выйти из аккаунта?')) {
+            if (window.AndroidNative && window.AndroidNative.logout) {
+                window.AndroidNative.logout();
+            }
+        }
+    } else {
+        const email = prompt('Введите ваш Email для входа:');
+        if (email && email.includes('@')) {
+            const password = prompt('Введите пароль (минимум 6 символов):');
+            if (password && password.length >= 6) {
+                if (window.AndroidNative && window.AndroidNative.login) {
+                    window.AndroidNative.login(email.trim(), password.trim());
+                }
+            } else if (password) {
+                alert('Пароль должен содержать не менее 6 символов!');
+            }
+        } else if (email) {
+            alert('Введите корректный адрес электронной почты!');
+        }
+    }
+}
+
 // Закрывать дропдаун при клике вне его области
 document.addEventListener('click', function(e) {
     const wrap = document.querySelector('.recipe-selector-wrap');
@@ -248,6 +274,18 @@ window.onStateUpdate = function(rawJsonData) {
             document.querySelectorAll('.user-display-name').forEach(elem => {
                 if (data.name) elem.textContent = data.name;
             });
+
+            const emailElem = document.getElementById('user-profile-email');
+            if (emailElem && data.email) {
+                emailElem.textContent = data.email;
+            }
+
+            const authBtn = document.getElementById('auth-action-btn');
+            if (authBtn) {
+                authBtn.textContent = data.isLoggedIn ? 'Выйти из аккаунта' : 'Войти в аккаунт';
+                authBtn.onclick = function() { handleAuthAction(data.isLoggedIn); };
+            }
+
             if (data.isDarkTheme !== undefined) {
                 if (data.isDarkTheme) {
                     document.body.classList.remove('light-theme');
@@ -255,6 +293,11 @@ window.onStateUpdate = function(rawJsonData) {
                     document.body.classList.add('light-theme');
                 }
             }
+
+            if (data.achievements && Array.isArray(data.achievements)) {
+                renderAchievements(data.achievements);
+            }
+
             if (data.scanHistory && Array.isArray(data.scanHistory)) {
                 renderScanHistory(data.scanHistory);
             }
@@ -263,6 +306,21 @@ window.onStateUpdate = function(rawJsonData) {
         console.error("Error in onStateUpdate:", e);
     }
 };
+
+// Отображение достижений (ачивок)
+function renderAchievements(achievements) {
+    const grid = document.querySelector('.achievements-grid');
+    if (!grid) return;
+
+    if (!achievements || achievements.length === 0) return;
+
+    grid.innerHTML = achievements.map(ach => `
+        <div class="achievement-card ${ach.isUnlocked ? 'unlocked' : 'locked'}" onclick="alert('${ach.title}: ${ach.description} (${ach.currentProgress}/${ach.targetProgress})')">
+            <span>${ach.icon}</span>
+            <div class="ach-badge">${ach.isUnlocked ? '✓' : '🔒'}</div>
+        </div>
+    `).join('');
+}
 
 // Отображение списка истории из Room DB
 function renderScanHistory(historyList) {

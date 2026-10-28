@@ -19,7 +19,8 @@ data class ProfileUiState(
     val achievements: List<Achievement> = emptyList(),
     val scanHistory: List<ScanResult> = emptyList(),
     val recipes: List<Recipe> = emptyList(),
-    val isDarkTheme: Boolean = true
+    val isDarkTheme: Boolean = true,
+    val authMessage: String? = null
 )
 
 class ProfileViewModel(
@@ -40,11 +41,12 @@ class ProfileViewModel(
                 combine(
                     repository.getUserProfile(),
                     repository.getScanHistory(),
+                    repository.getAchievements(),
                     repository.isDarkTheme
-                ) { profile, history, isDark ->
+                ) { profile, history, achievements, isDark ->
                     ProfileUiState(
                         userProfile = profile.copy(totalScansCount = history.size),
-                        achievements = repository.getAchievements(),
+                        achievements = achievements,
                         scanHistory = history,
                         recipes = repository.getRecipes(),
                         isDarkTheme = isDark
@@ -55,6 +57,37 @@ class ProfileViewModel(
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Ошибка загрузки профиля")
             }
+        }
+    }
+
+    fun login(email: String, pass: String) {
+        viewModelScope.launch {
+            val result = repository.login(email, pass)
+            if (result.isFailure) {
+                updateAuthMessage(result.exceptionOrNull()?.message ?: "Ошибка входа")
+            }
+        }
+    }
+
+    fun register(name: String, email: String, pass: String) {
+        viewModelScope.launch {
+            val result = repository.register(name, email, pass)
+            if (result.isFailure) {
+                updateAuthMessage(result.exceptionOrNull()?.message ?: "Ошибка регистрации")
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repository.logout()
+        }
+    }
+
+    private fun updateAuthMessage(msg: String) {
+        val current = _uiState.value
+        if (current is UiState.Success) {
+            _uiState.value = UiState.Success(current.data.copy(authMessage = msg))
         }
     }
 

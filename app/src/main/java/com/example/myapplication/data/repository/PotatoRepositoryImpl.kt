@@ -14,6 +14,7 @@ import com.example.myapplication.data.model.ScanResult
 import com.example.myapplication.data.model.UserProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -109,12 +110,18 @@ class PotatoRepositoryImpl(
     }
 
     override fun getUserProfile(): Flow<UserProfile> {
-        return userPreferences.userName.map { name ->
+        return combine(
+            userPreferences.userName,
+            userPreferences.userEmail,
+            userPreferences.isLoggedIn,
+            getScanHistory()
+        ) { name, email, isLoggedIn, history ->
             UserProfile(
                 name = name,
-                email = "expert@bulbascan.by",
+                email = email,
+                isLoggedIn = isLoggedIn,
                 achievementsCount = 6,
-                totalScansCount = 10
+                totalScansCount = history.size
             )
         }
     }
@@ -123,14 +130,45 @@ class PotatoRepositoryImpl(
         userPreferences.saveUserProfile(name, email)
     }
 
-    override fun getAchievements(): List<Achievement> = listOf(
-        Achievement("a1", "Первый клубень", "🥔", true),
-        Achievement("a2", "Мастер драников", "🥞", true),
-        Achievement("a3", "Жаркая полночь", "🔥", true),
-        Achievement("a4", "Знаток сортов", "⭐", true),
-        Achievement("a5", "Агроном 80 лвл", "🚜", true),
-        Achievement("a6", "Король картошки", "👑", true)
-    )
+    override suspend fun login(email: String, password: String): Result<UserProfile> {
+        if (!email.contains("@") || password.length < 6) {
+            return Result.failure(IllegalArgumentException("Неверный email или пароль (минимум 6 символов)"))
+        }
+        val name = email.substringBefore("@").replaceFirstChar { it.uppercase() }
+        val token = "token_${System.currentTimeMillis()}"
+        userPreferences.saveAuthSession(name, email, token)
+        return Result.success(UserProfile(name = name, email = email, isLoggedIn = true))
+    }
+
+    override suspend fun register(name: String, email: String, password: String): Result<UserProfile> {
+        if (name.isBlank() || !email.contains("@") || password.length < 6) {
+            return Result.failure(IllegalArgumentException("Проверьте правильность введенных данных"))
+        }
+        val token = "token_${System.currentTimeMillis()}"
+        userPreferences.saveAuthSession(name.trim(), email.trim(), token)
+        return Result.success(UserProfile(name = name.trim(), email = email.trim(), isLoggedIn = true))
+    }
+
+    override suspend fun logout() {
+        userPreferences.clearAuthSession()
+    }
+
+    override fun getAchievements(): Flow<List<Achievement>> {
+        return combine(getScanHistory(), userPreferences.isLoggedIn) { history, isLoggedIn ->
+            val totalScans = history.size
+            val has10Score = history.any { it.score >= 10 }
+            val distinctVarieties = history.map { it.varietyName }.distinct().size
+
+            listOf(
+                Achievement("a1", "Первый клубень", "Сделайте первое сканирование", "🥔", totalScans >= 1, totalScans.coerceAtMost(1), 1),
+                Achievement("a2", "Мастер драников", "Найдите сорт с высшим баллом 10/10", "🥞", has10Score, if (has10Score) 1 else 0, 1),
+                Achievement("a3", "Знаток сортов", "Отсканируйте 2 разных сорта", "⭐", distinctVarieties >= 2, distinctVarieties.coerceAtMost(2), 2),
+                Achievement("a4", "Агроном 80 лвл", "Сделайте минимум 3 сканирования", "🚜", totalScans >= 3, totalScans.coerceAtMost(3), 3),
+                Achievement("a5", "Авторизован", "Зарегистрируйтесь в приложении", "🔥", isLoggedIn, if (isLoggedIn) 1 else 0, 1),
+                Achievement("a6", "Король картошки", "Выполните 5 сканирований", "👑", totalScans >= 5, totalScans.coerceAtMost(5), 5)
+            )
+        }
+    }
 
     override fun simulateAnalysis(selectedGoal: String): Flow<Int> = flow {
         emit(20)

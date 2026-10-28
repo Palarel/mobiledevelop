@@ -36,13 +36,17 @@ data class ScanResult(
 data class UserProfile(
     val name: String = "Картофельный эксперт",
     val email: String = "expert@bulbascan.by",
+    val isLoggedIn: Boolean = false,
     val achievementsCount: Int = 6,
-    val totalScansCount: Int = 12
+    val totalScansCount: Int = 0
 )
 
 data class Achievement(
     val id: String,
     val title: String,
+    val description: String,
     val icon: String,
-    val isUnlocked: Boolean = true
+    val isUnlocked: Boolean = false,
+    val currentProgress: Int = 0,
+    val targetProgress: Int = 1
 )

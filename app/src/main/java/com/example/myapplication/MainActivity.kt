@@ -221,8 +221,24 @@ class MainActivity : ComponentActivity() {
                                     put("type", "profile")
                                     put("name", state.data.userProfile.name)
                                     put("email", state.data.userProfile.email)
+                                    put("isLoggedIn", state.data.userProfile.isLoggedIn)
                                     put("totalScans", state.data.userProfile.totalScansCount)
                                     put("isDarkTheme", state.data.isDarkTheme)
+                                    put("authMessage", state.data.authMessage ?: "")
+
+                                    val achievementsArray = JSONArray()
+                                    state.data.achievements.forEach { ach ->
+                                        achievementsArray.put(JSONObject().apply {
+                                            put("id", ach.id)
+                                            put("title", ach.title)
+                                            put("description", ach.description)
+                                            put("icon", ach.icon)
+                                            put("isUnlocked", ach.isUnlocked)
+                                            put("currentProgress", ach.currentProgress)
+                                            put("targetProgress", ach.targetProgress)
+                                        })
+                                    }
+                                    put("achievements", achievementsArray)
 
                                     val historyArray = JSONArray()
                                     state.data.scanHistory.forEach { scan ->
@@ -295,6 +311,21 @@ class AndroidBridge(
     @JavascriptInterface
     fun updateProfileName(newName: String) {
         profileViewModel.updateName(newName)
+    }
+
+    @JavascriptInterface
+    fun login(email: String, pass: String) {
+        profileViewModel.login(email, pass)
+    }
+
+    @JavascriptInterface
+    fun register(name: String, email: String, pass: String) {
+        profileViewModel.register(name, email, pass)
+    }
+
+    @JavascriptInterface
+    fun logout() {
+        profileViewModel.logout()
     }
 
     @JavascriptInterface

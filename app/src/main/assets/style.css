@@ -2432,3 +2432,38 @@ body.light-theme .recipe-option.active {
     font-weight: 600;
     cursor: pointer;
 }
+
+/* ==================== ACHIEVEMENTS & AUTH STYLES ==================== */
+.achievement-card {
+    position: relative;
+    cursor: pointer;
+}
+
+.achievement-card.locked {
+    filter: grayscale(1);
+    opacity: 0.5;
+}
+
+.achievement-card.unlocked {
+    filter: grayscale(0);
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(224, 122, 43, 0.4);
+}
+
+.ach-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+}
+
+.auth-btn {
+    background-color: #e07a2b;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
