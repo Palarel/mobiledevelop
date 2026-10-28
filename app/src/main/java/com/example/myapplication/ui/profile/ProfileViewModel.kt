@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Achievement
 import com.example.myapplication.data.model.Recipe
+import com.example.myapplication.data.model.ScanAnalytics
 import com.example.myapplication.data.model.ScanResult
 import com.example.myapplication.data.model.UserProfile
 import com.example.myapplication.data.repository.PotatoRepository
@@ -19,6 +20,7 @@ data class ProfileUiState(
     val achievements: List<Achievement> = emptyList(),
     val scanHistory: List<ScanResult> = emptyList(),
     val recipes: List<Recipe> = emptyList(),
+    val analytics: ScanAnalytics = ScanAnalytics(),
     val isDarkTheme: Boolean = true,
     val authMessage: String? = null
 )
@@ -42,13 +44,15 @@ class ProfileViewModel(
                     repository.getUserProfile(),
                     repository.getScanHistory(),
                     repository.getAchievements(),
+                    repository.getScanAnalytics(),
                     repository.isDarkTheme
-                ) { profile, history, achievements, isDark ->
+                ) { profile, history, achievements, analytics, isDark ->
                     ProfileUiState(
                         userProfile = profile.copy(totalScansCount = history.size),
                         achievements = achievements,
                         scanHistory = history,
                         recipes = repository.getRecipes(),
+                        analytics = analytics,
                         isDarkTheme = isDark
                     )
                 }.collect { state ->
@@ -98,6 +102,18 @@ class ProfileViewModel(
                 val currentProfile = currentState.data.userProfile
                 repository.updateUserProfile(newName, currentProfile.email)
             }
+        }
+    }
+
+    fun saveScanNote(id: String, note: String) {
+        viewModelScope.launch {
+            repository.updateScanNote(id, note)
+        }
+    }
+
+    fun toggleScanFavorite(id: String, isFav: Boolean) {
+        viewModelScope.launch {
+            repository.toggleScanFavorite(id, isFav)
         }
     }
 

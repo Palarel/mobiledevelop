@@ -90,6 +90,50 @@ function toggleTheme(isDark) {
     }
 }
 
+// Функция "Поделиться вердиктом"
+function shareVerdictResult() {
+    haptic('click');
+    const title = document.querySelector('#screen-verdict h3')?.textContent || '';
+    const type = document.querySelector('#screen-verdict .type-caption strong')?.textContent || '';
+    const score = document.querySelector('#screen-verdict .score-pill')?.textContent || '';
+    const text = document.querySelector('#screen-verdict .eval-text')?.textContent || '';
+
+    const shareText = `🥔 Результат BulbaScan:\nСорт: ${title}\nТип: ${type}\nОценка: ${score}\n${text}\n\nПроверено в BulbaScan AI!`;
+
+    if (window.AndroidNative && window.AndroidNative.shareVerdict) {
+        window.AndroidNative.shareVerdict(shareText);
+    } else {
+        alert(shareText);
+    }
+}
+
+// Заметка к сканированию
+function saveScanUserNote(id) {
+    haptic('click');
+    const note = prompt('Добавьте вашу заметку к этому сканированию (например: "Купил на Комаровке"):');
+    if (note !== null && window.AndroidNative && window.AndroidNative.saveScanNote) {
+        window.AndroidNative.saveScanNote(id, note.trim());
+    }
+}
+
+// Пересчет калькулятора порций
+function updatePortionCalculator(servings) {
+    const servingsElem = document.getElementById('portion-servings-val');
+    if (servingsElem) servingsElem.textContent = servings;
+
+    const potElem = document.getElementById('ing-potato');
+    if (potElem) potElem.textContent = (400 * servings) + ' г';
+
+    const onionElem = document.getElementById('ing-onion');
+    if (onionElem) onionElem.textContent = Math.round(75 * servings) + ' г';
+
+    const eggElem = document.getElementById('ing-egg');
+    if (eggElem) eggElem.textContent = Math.round(0.5 * servings) + ' шт';
+
+    const flourElem = document.getElementById('ing-flour');
+    if (flourElem) flourElem.textContent = (10 * servings) + ' г';
+}
+
 // Удаление сканирования из Room DB
 function deleteScanHistory(id) {
     haptic('click');
@@ -294,6 +338,10 @@ window.onStateUpdate = function(rawJsonData) {
                 }
             }
 
+            if (data.analytics) {
+                renderAnalytics(data.analytics);
+            }
+
             if (data.achievements && Array.isArray(data.achievements)) {
                 renderAchievements(data.achievements);
             }
@@ -306,6 +354,27 @@ window.onStateUpdate = function(rawJsonData) {
         console.error("Error in onStateUpdate:", e);
     }
 };
+
+// Отображение аналитики сканирований
+function renderAnalytics(analytics) {
+    const container = document.getElementById('analytics-dashboard');
+    if (!container || !analytics) return;
+
+    container.innerHTML = `
+        <div class="analytics-card-item">
+            <span class="analytics-label">Всего сканирований</span>
+            <strong class="analytics-value">${analytics.totalScans || 0}</strong>
+        </div>
+        <div class="analytics-card-item">
+            <span class="analytics-label">Средний крахмал</span>
+            <strong class="analytics-value">${analytics.averageStarch || '0.0'}%</strong>
+        </div>
+        <div class="analytics-card-item">
+            <span class="analytics-label">Любимый сорт</span>
+            <strong class="analytics-value">${analytics.topVariety || 'Манифест'}</strong>
+        </div>
+    `;
+}
 
 // Отображение достижений (ачивок)
 function renderAchievements(achievements) {
@@ -337,8 +406,12 @@ function renderScanHistory(historyList) {
             <div class="history-item-info">
                 <strong>${item.varietyName || 'Клубень'} (${item.culinaryType || ''})</strong>
                 <span>★ ${item.score}/10 — ${new Date(item.timestamp).toLocaleDateString()}</span>
+                ${item.userNote ? `<div class="user-note-text">📝 ${item.userNote}</div>` : ''}
             </div>
-            <button class="history-delete-btn" onclick="deleteScanHistory('${item.id}')">🗑️</button>
+            <div class="history-item-actions">
+                <button class="history-note-btn" onclick="saveScanUserNote('${item.id}')">✏️</button>
+                <button class="history-delete-btn" onclick="deleteScanHistory('${item.id}')">🗑️</button>
+            </div>
         </div>
     `).join('');
 }

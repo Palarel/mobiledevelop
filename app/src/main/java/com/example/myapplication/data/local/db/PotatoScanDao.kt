@@ -15,6 +15,12 @@ interface PotatoScanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertScan(scan: PotatoScanEntity)
 
+    @Query("UPDATE potato_scans SET userNote = :note WHERE id = :id")
+    suspend fun updateScanNote(id: String, note: String)
+
+    @Query("UPDATE potato_scans SET isFavorite = :isFav WHERE id = :id")
+    suspend fun updateScanFavorite(id: String, isFav: Boolean)
+
     @Query("DELETE FROM potato_scans WHERE id = :id")
     suspend fun deleteScanById(id: String)
 

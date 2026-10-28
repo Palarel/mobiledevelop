@@ -17,7 +17,9 @@ data class PotatoScanEntity(
     val score: Int,
     val verdictTitle: String,
     val verdictText: String,
-    val warningMessage: String? = null
+    val warningMessage: String? = null,
+    val userNote: String? = null,
+    val isFavorite: Boolean = false
 )
 
 fun PotatoScanEntity.toDomainModel() = ScanResult(
@@ -31,7 +33,9 @@ fun PotatoScanEntity.toDomainModel() = ScanResult(
     score = score,
     verdictTitle = verdictTitle,
     verdictText = verdictText,
-    warningMessage = warningMessage
+    warningMessage = warningMessage,
+    userNote = userNote,
+    isFavorite = isFavorite
 )
 
 fun ScanResult.toEntity() = PotatoScanEntity(
@@ -45,5 +49,7 @@ fun ScanResult.toEntity() = PotatoScanEntity(
     score = score,
     verdictTitle = verdictTitle,
     verdictText = verdictText,
-    warningMessage = warningMessage
+    warningMessage = warningMessage,
+    userNote = userNote,
+    isFavorite = isFavorite
 )

@@ -14,7 +14,13 @@ data class PotatoVariety(
     val starchPercentage: Int,
     val fleshColor: String,
     val dranikScore: Int,
-    val description: String
+    val description: String,
+    val country: String = "Беларусь",
+    val yield: String = "до 55 т/га",
+    val boilability: String = "Среднеразвариваемый",
+    val diseaseResistance: String = "Высокая (устойчив к фитофторозу)",
+    val bestDishes: String = "Драники, Пюре, Клецки",
+    val isFavorite: Boolean = false
 )
 
 data class ScanResult(
@@ -29,6 +35,8 @@ data class ScanResult(
     val verdictTitle: String,
     val verdictText: String,
     val warningMessage: String? = null,
+    val userNote: String? = null,
+    val isFavorite: Boolean = false,
     val isGeometryOk: Boolean = true,
     val isEyeDepthOk: Boolean = true
 )
@@ -49,4 +57,13 @@ data class Achievement(
     val isUnlocked: Boolean = false,
     val currentProgress: Int = 0,
     val targetProgress: Int = 1
+)
+
+data class ScanAnalytics(
+    val totalScans: Int = 0,
+    val dranikiCount: Int = 0,
+    val pureeCount: Int = 0,
+    val fryCount: Int = 0,
+    val averageStarch: Double = 0.0,
+    val topVariety: String = "Манифест"
 )

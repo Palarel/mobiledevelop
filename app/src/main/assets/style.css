@@ -2467,3 +2467,106 @@ body.light-theme .recipe-option.active {
     font-weight: 600;
     cursor: pointer;
 }
+
+/* ==================== SHARE BUTTON & PORTION CALCULATOR ==================== */
+.btn-share-action {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-share-action:hover {
+    background-color: #1d4ed8;
+}
+
+.portion-calculator-box {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 14px;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.light-theme .portion-calculator-box {
+    background: #ffffff;
+    border-color: #cbd5e1;
+}
+
+.portion-header {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.portion-slider {
+    width: 100%;
+    accent-color: #e07a2b;
+    cursor: pointer;
+}
+
+.ingredients-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.ing-item {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+body.light-theme .ing-item {
+    color: #475569;
+}
+
+.ing-item strong {
+    color: #e07a2b;
+}
+
+/* ==================== ANALYTICS DASHBOARD ==================== */
+.analytics-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.analytics-card-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body.light-theme .analytics-card-item {
+    background: #ffffff;
+    border-color: #cbd5e1;
+}
+
+.analytics-label {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+body.light-theme .analytics-label {
+    color: #64748b;
+}
+
+.analytics-value {
+    font-size: 14px;
+    font-weight: 800;
+    color: #e07a2b;
+}

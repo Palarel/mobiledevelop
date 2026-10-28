@@ -10,6 +10,7 @@ import com.example.myapplication.data.model.Ingredient
 import com.example.myapplication.data.model.PotatoVariety
 import com.example.myapplication.data.model.Recipe
 import com.example.myapplication.data.model.RecipeStep
+import com.example.myapplication.data.model.ScanAnalytics
 import com.example.myapplication.data.model.ScanResult
 import com.example.myapplication.data.model.UserProfile
 import kotlinx.coroutines.delay
@@ -37,7 +38,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 17,
             fleshColor = "Светло-желтая",
             dranikScore = 10,
-            description = "Белорусский флагманский сорт. Высокое содержание крахмала даст густое тесто и идеальную хрустящую корочку."
+            description = "Белорусский флагманский сорт. Высокое содержание крахмала даст густое тесто и идеальную хрустящую корочку.",
+            country = "Беларусь",
+            yield = "до 55 т/га",
+            boilability = "Среднеразвариваемый",
+            diseaseResistance = "Высокая (устойчив к фитофторозу)",
+            bestDishes = "Драники, Пюре, Клецки"
         ),
         PotatoVariety(
             id = "v2",
@@ -46,7 +52,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 13,
             fleshColor = "Желтая",
             dranikScore = 6,
-            description = "Немецкий гладкий сорт. Сохраняет форму ломтиков при жарке, запекании и в салатах."
+            description = "Немецкий гладкий сорт. Сохраняет форму ломтиков при жарке, запекании и в салатах.",
+            country = "Германия",
+            yield = "до 50 т/га",
+            boilability = "Низкая (слаборассыпчатый)",
+            diseaseResistance = "Высокая",
+            bestDishes = "Жарка, Салаты, Фри"
         ),
         PotatoVariety(
             id = "v3",
@@ -55,7 +66,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 18,
             fleshColor = "Желтая",
             dranikScore = 9,
-            description = "Популярный белорусский поздний сорт. Идеален для воздушного пюре и запеканок."
+            description = "Популярный белорусский поздний сорт. Идеален для воздушного пюре и запеканок.",
+            country = "Беларусь",
+            yield = "до 60 т/га",
+            boilability = "Сильноразвариваемый",
+            diseaseResistance = "Очень высокая",
+            bestDishes = "Пюре, Запеканки, Чипсы"
         ),
         PotatoVariety(
             id = "v4",
@@ -64,7 +80,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 14,
             fleshColor = "Темно-желтая",
             dranikScore = 8,
-            description = "Универсальный столовый сорт с прекрасным вкусом и устойчивостью к потемнению мякоти."
+            description = "Универсальный столовый сорт с прекрасным вкусом и устойчивостью к потемнению мякоти.",
+            country = "Германия",
+            yield = "до 48 т/га",
+            boilability = "Умеренная",
+            diseaseResistance = "Высокая",
+            bestDishes = "Супы, Жарка, Запекание"
         ),
         PotatoVariety(
             id = "v5",
@@ -73,7 +94,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 15,
             fleshColor = "Желтая",
             dranikScore = 8,
-            description = "Белорусский среднеранний сорт с отличной развариваемостью для большинства блюд."
+            description = "Белорусский среднеранний сорт с отличной развариваемостью для большинства блюд.",
+            country = "Беларусь",
+            yield = "до 52 т/га",
+            boilability = "Средняя",
+            diseaseResistance = "Высокая",
+            bestDishes = "Драники, Вареный картофель"
         ),
         PotatoVariety(
             id = "v6",
@@ -82,7 +108,12 @@ class PotatoRepositoryImpl(
             starchPercentage = 19,
             fleshColor = "Желтая",
             dranikScore = 10,
-            description = "Рекордсмен по содержанию крахмала. Отлично подходит для крахмала, драников и фри."
+            description = "Рекордсмен по содержанию крахмала. Отлично подходит для крахмала, драников и фри.",
+            country = "Беларусь",
+            yield = "до 58 т/га",
+            boilability = "Высокая",
+            diseaseResistance = "Иммунитет к раку картофеля",
+            bestDishes = "Драники, Фри, Крахмал"
         )
     )
 
@@ -103,6 +134,14 @@ class PotatoRepositoryImpl(
 
     override suspend fun saveScanResult(result: ScanResult) {
         scanDao.insertScan(result.toEntity())
+    }
+
+    override suspend fun updateScanNote(id: String, note: String) {
+        scanDao.updateScanNote(id, note)
+    }
+
+    override suspend fun toggleScanFavorite(id: String, isFav: Boolean) {
+        scanDao.updateScanFavorite(id, isFav)
     }
 
     override suspend fun deleteScanResult(id: String) {
@@ -167,6 +206,30 @@ class PotatoRepositoryImpl(
                 Achievement("a5", "Авторизован", "Зарегистрируйтесь в приложении", "🔥", isLoggedIn, if (isLoggedIn) 1 else 0, 1),
                 Achievement("a6", "Король картошки", "Выполните 5 сканирований", "👑", totalScans >= 5, totalScans.coerceAtMost(5), 5)
             )
+        }
+    }
+
+    override fun getScanAnalytics(): Flow<ScanAnalytics> {
+        return getScanHistory().map { history ->
+            if (history.isEmpty()) {
+                ScanAnalytics(0, 0, 0, 0, 0.0, "Манифест")
+            } else {
+                val total = history.size
+                val dranikiCount = history.count { it.verdictTitle.contains("ДРАНИК", ignoreCase = true) }
+                val pureeCount = history.count { it.verdictTitle.contains("ПЮРЕ", ignoreCase = true) }
+                val fryCount = history.count { it.verdictTitle.contains("ЖАРК", ignoreCase = true) }
+                val avgStarch = history.map { it.starchPercentage }.average()
+                val topVar = history.groupingBy { it.varietyName }.eachCount().maxByOrNull { it.value }?.key ?: "Манифест"
+
+                ScanAnalytics(
+                    totalScans = total,
+                    dranikiCount = dranikiCount,
+                    pureeCount = pureeCount,
+                    fryCount = fryCount,
+                    averageStarch = avgStarch,
+                    topVariety = topVar
+                )
+            }
         }
     }
 

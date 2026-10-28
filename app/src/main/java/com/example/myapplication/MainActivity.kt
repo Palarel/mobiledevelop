@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
@@ -112,6 +113,9 @@ class MainActivity : ComponentActivity() {
                         onHapticRequested = { type ->
                             performHapticFeedback(type)
                         },
+                        onShareRequested = { shareText ->
+                            shareVerdict(shareText)
+                        },
                         onWebViewCreated = { webView ->
                             currentWebView = webView
                         },
@@ -121,6 +125,20 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    private fun shareVerdict(text: String) {
+        try {
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, text)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Поделиться вердиктом BulbaScan")
+            startActivity(shareIntent)
+        } catch (e: Exception) {
+            // Safe fallback
         }
     }
 
@@ -183,6 +201,7 @@ class MainActivity : ComponentActivity() {
                                 put("statusText", state.statusText)
                                 state.scanVerdict?.let { verdict ->
                                     val verdictObj = JSONObject().apply {
+                                        put("id", verdict.id)
                                         put("varietyName", verdict.varietyName)
                                         put("culinaryType", verdict.culinaryType)
                                         put("starchPercentage", verdict.starchPercentage)
@@ -226,6 +245,16 @@ class MainActivity : ComponentActivity() {
                                     put("isDarkTheme", state.data.isDarkTheme)
                                     put("authMessage", state.data.authMessage ?: "")
 
+                                    val analyticsObj = JSONObject().apply {
+                                        put("totalScans", state.data.analytics.totalScans)
+                                        put("dranikiCount", state.data.analytics.dranikiCount)
+                                        put("pureeCount", state.data.analytics.pureeCount)
+                                        put("fryCount", state.data.analytics.fryCount)
+                                        put("averageStarch", String.format("%.1f", state.data.analytics.averageStarch))
+                                        put("topVariety", state.data.analytics.topVariety)
+                                    }
+                                    put("analytics", analyticsObj)
+
                                     val achievementsArray = JSONArray()
                                     state.data.achievements.forEach { ach ->
                                         achievementsArray.put(JSONObject().apply {
@@ -248,6 +277,8 @@ class MainActivity : ComponentActivity() {
                                             put("culinaryType", scan.culinaryType)
                                             put("score", scan.score)
                                             put("verdictTitle", scan.verdictTitle)
+                                            put("userNote", scan.userNote ?: "")
+                                            put("isFavorite", scan.isFavorite)
                                             put("timestamp", scan.timestamp)
                                         })
                                     }
@@ -280,7 +311,8 @@ class AndroidBridge(
     private val profileViewModel: ProfileViewModel,
     private val onCameraRequested: () -> Unit,
     private val onGalleryRequested: () -> Unit,
-    private val onHapticRequested: (String) -> Unit
+    private val onHapticRequested: (String) -> Unit,
+    private val onShareRequested: (String) -> Unit
 ) {
     @JavascriptInterface
     fun selectRecipe(recipe: String) {
@@ -329,6 +361,16 @@ class AndroidBridge(
     }
 
     @JavascriptInterface
+    fun saveScanNote(id: String, note: String) {
+        profileViewModel.saveScanNote(id, note)
+    }
+
+    @JavascriptInterface
+    fun toggleScanFavorite(id: String, isFav: Boolean) {
+        profileViewModel.toggleScanFavorite(id, isFav)
+    }
+
+    @JavascriptInterface
     fun deleteScan(id: String) {
         profileViewModel.deleteScanHistoryItem(id)
     }
@@ -336,6 +378,11 @@ class AndroidBridge(
     @JavascriptInterface
     fun setDarkTheme(isDark: Boolean) {
         profileViewModel.toggleTheme(isDark)
+    }
+
+    @JavascriptInterface
+    fun shareVerdict(text: String) {
+        onShareRequested(text)
     }
 
     @JavascriptInterface
@@ -364,6 +411,7 @@ fun BulbaScanWebView(
     onCameraRequested: () -> Unit,
     onGalleryRequested: () -> Unit,
     onHapticRequested: (String) -> Unit,
+    onShareRequested: (String) -> Unit,
     onWebViewCreated: (WebView) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -401,7 +449,8 @@ fun BulbaScanWebView(
                         profileViewModel = profileViewModel,
                         onCameraRequested = onCameraRequested,
                         onGalleryRequested = onGalleryRequested,
-                        onHapticRequested = onHapticRequested
+                        onHapticRequested = onHapticRequested,
+                        onShareRequested = onShareRequested
                     ),
                     "AndroidNative"
                 )

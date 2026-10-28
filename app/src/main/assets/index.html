@@ -186,6 +186,9 @@
                 <button class="btn-primary-action" onclick="openScreen('timer')">
                     ⏱ Запустить таймер идеальной жарки
                 </button>
+                <button class="btn-share-action" onclick="shareVerdictResult()">
+                    📤 Поделиться вердиктом
+                </button>
                 <button class="btn-secondary-action" onclick="openScreen('camera')">
                     Сканировать другой клубень
                 </button>
@@ -193,14 +196,14 @@
         </div>
     </section>
 
-    <!-- ==================== ЭКРАН 4: ТАЙМЕР ==================== -->
+    <!-- ==================== ЭКРАН 4: ТАЙМЕР И КАЛЬКУЛЯТОР ==================== -->
     <section class="screen" id="screen-timer">
         <div class="timer-body">
             <div class="timer-top-bar">
                 <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
                 <div class="timer-titles">
-                    <h2>Таймер</h2>
-                    <p>Ваш помощник со временем готовки</p>
+                    <h2>Таймер и Рецепт</h2>
+                    <p>Помощник готовки</p>
                 </div>
                 <div style="width: 36px;"></div>
             </div>
@@ -216,10 +219,24 @@
                     <button class="clock-btn" onclick="resetTimer()">■</button>
                 </div>
             </div>
+
+            <!-- Калькулятор порций рецепта -->
+            <div class="portion-calculator-box">
+                <div class="portion-header">
+                    <span>Калькулятор порций: <strong id="portion-servings-val">2</strong> чел.</span>
+                </div>
+                <input type="range" min="1" max="10" value="2" class="portion-slider" oninput="updatePortionCalculator(this.value)">
+                <div class="ingredients-summary-grid">
+                    <div class="ing-item">🥔 Картофель: <strong id="ing-potato">800 г</strong></div>
+                    <div class="ing-item">🧅 Лук: <strong id="ing-onion">150 г</strong></div>
+                    <div class="ing-item">🥚 Яйцо: <strong id="ing-egg">1 шт</strong></div>
+                    <div class="ing-item">🌾 Мука: <strong id="ing-flour">20 г</strong></div>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- ==================== ЭКРАН 5: ПРОФИЛЬ ==================== -->
+    <!-- ==================== ЭКРАН 5: ПРОФИЛЬ И АНАЛИТИКА ==================== -->
     <section class="screen" id="screen-profile">
         <div class="profile-screen-body">
             <div class="profile-top-bar">
@@ -231,6 +248,24 @@
             <div class="profile-user-info" onclick="editProfileName()">
                 <div class="avatar-large">👤</div>
                 <h3 class="user-display-name">Username</h3>
+            </div>
+
+            <div class="profile-divider-thick"></div>
+
+            <h4 class="achievements-heading">Аналитика сканирований</h4>
+            <div class="analytics-dashboard-grid" id="analytics-dashboard">
+                <div class="analytics-card-item">
+                    <span class="analytics-label">Всего сканирований</span>
+                    <strong class="analytics-value">1</strong>
+                </div>
+                <div class="analytics-card-item">
+                    <span class="analytics-label">Средний крахмал</span>
+                    <strong class="analytics-value">17.0%</strong>
+                </div>
+                <div class="analytics-card-item">
+                    <span class="analytics-label">Любимый сорт</span>
+                    <strong class="analytics-value">Манифест</strong>
+                </div>
             </div>
 
             <div class="profile-divider-thick"></div>
