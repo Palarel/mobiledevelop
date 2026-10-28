@@ -121,6 +121,31 @@ function triggerCameraCapture() {
     }
 }
 
+// Выбор файла из нативной галереи
+function triggerGalleryPicker() {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.openGallery) {
+        window.AndroidNative.openGallery();
+    } else {
+        triggerCameraCapture();
+    }
+}
+
+// Редактирование имени профиля
+function editProfileName() {
+    haptic('click');
+    const currentNameElem = document.querySelector('.user-display-name');
+    const currentName = currentNameElem ? currentNameElem.textContent : 'BulbaLover';
+    const newName = prompt('Введите новое имя профиля:', currentName);
+    if (newName && newName.trim()) {
+        if (window.AndroidNative && window.AndroidNative.updateProfileName) {
+            window.AndroidNative.updateProfileName(newName.trim());
+        } else if (currentNameElem) {
+            currentNameElem.textContent = newName.trim();
+        }
+    }
+}
+
 // Управление таймером
 function toggleTimer() {
     haptic('click');

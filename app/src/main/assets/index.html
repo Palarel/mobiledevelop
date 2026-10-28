@@ -65,7 +65,7 @@
                 <span>Сканировать клубень</span>
             </button>
 
-            <button class="gallery-button" onclick="triggerCameraCapture()">
+            <button class="gallery-button" onclick="triggerGalleryPicker()">
                 Выбрать снимок из галереи
             </button>
         </main>
@@ -91,7 +91,7 @@
             </div>
 
             <div class="cam-bottom-bar">
-                <button class="cam-side-btn" onclick="triggerCameraCapture()">🖼️</button>
+                <button class="cam-side-btn" onclick="triggerGalleryPicker()">🖼️</button>
                 <button class="shutter-btn" onclick="triggerCameraCapture()">
                     <span class="shutter-inner"></span>
                 </button>
@@ -225,10 +225,10 @@
             <div class="profile-top-bar">
                 <button class="icon-circle-btn home-circle-btn" onclick="openScreen('home')">⌂</button>
                 <h2>Профиль</h2>
-                <button class="settings-btn">⚙</button>
+                <button class="settings-btn" onclick="editProfileName()">⚙</button>
             </div>
 
-            <div class="profile-user-info">
+            <div class="profile-user-info" onclick="editProfileName()">
                 <div class="avatar-large">👤</div>
                 <h3 class="user-display-name">Username</h3>
             </div>
@@ -250,8 +250,8 @@
 
             <div class="credentials-block">
                 <div class="cred-row">
-                    <span>Password: **********</span>
-                    <button class="btn-change-pwd">Сменить пароль</button>
+                    <span>Имя профиля: <strong class="user-display-name">Username</strong></span>
+                    <button class="btn-change-pwd" onclick="editProfileName()">Сменить</button>
                 </div>
                 <div class="cred-row">
                     <span>Gmail: expert@bulbascan.by</span>

@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class TimerUiState(
+    val initialSeconds: Int = 240,
     val remainingSeconds: Int = 240,
     val isRunning: Boolean = false,
+    val isFinished: Boolean = false,
     val formattedTime: String = "04:00",
     val title: String = "Жарка 1 стороны"
 )
@@ -23,6 +25,25 @@ class TimerViewModel : ViewModel() {
 
     private var timerJob: Job? = null
 
+    fun setGoalTimer(goalName: String) {
+        val (seconds, title) = when {
+            goalName.contains("Пюре", ignoreCase = true) -> 900 to "Варка до готовности"
+            goalName.contains("Жарка", ignoreCase = true) -> 600 to "Жарка на сковороде"
+            goalName.contains("Запекание", ignoreCase = true) -> 1200 to "Запекание в духовке"
+            else -> 240 to "Жарка 1 стороны"
+        }
+
+        timerJob?.cancel()
+        _uiState.value = TimerUiState(
+            initialSeconds = seconds,
+            remainingSeconds = seconds,
+            isRunning = false,
+            isFinished = false,
+            formattedTime = formatTime(seconds),
+            title = title
+        )
+    }
+
     fun toggleTimer() {
         if (_uiState.value.isRunning) {
             pauseTimer()
@@ -33,10 +54,15 @@ class TimerViewModel : ViewModel() {
 
     private fun startTimer() {
         if (_uiState.value.remainingSeconds <= 0) {
-            _uiState.value = _uiState.value.copy(remainingSeconds = 240, formattedTime = formatTime(240))
+            val initSec = _uiState.value.initialSeconds
+            _uiState.value = _uiState.value.copy(
+                remainingSeconds = initSec,
+                isFinished = false,
+                formattedTime = formatTime(initSec)
+            )
         }
 
-        _uiState.value = _uiState.value.copy(isRunning = true)
+        _uiState.value = _uiState.value.copy(isRunning = true, isFinished = false)
 
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -49,7 +75,7 @@ class TimerViewModel : ViewModel() {
                 )
             }
             if (_uiState.value.remainingSeconds <= 0) {
-                _uiState.value = _uiState.value.copy(isRunning = false)
+                _uiState.value = _uiState.value.copy(isRunning = false, isFinished = true)
             }
         }
     }
@@ -61,10 +87,12 @@ class TimerViewModel : ViewModel() {
 
     fun resetTimer() {
         timerJob?.cancel()
-        _uiState.value = TimerUiState(
-            remainingSeconds = 240,
+        val initSec = _uiState.value.initialSeconds
+        _uiState.value = _uiState.value.copy(
+            remainingSeconds = initSec,
             isRunning = false,
-            formattedTime = formatTime(240)
+            isFinished = false,
+            formattedTime = formatTime(initSec)
         )
     }
 

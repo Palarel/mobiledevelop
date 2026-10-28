@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -63,6 +64,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Выбор изображения из галереи
+    private val openGalleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            currentWebView?.post {
+                currentWebView?.evaluateJavascript("window.openScreen('analysis');", null)
+            }
+            analysisViewModelRef?.startAnalysis(activeSelectedGoal)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -92,6 +105,9 @@ class MainActivity : ComponentActivity() {
                         onCameraRequested = {
                             takePicturePreviewLauncher.launch(null)
                         },
+                        onGalleryRequested = {
+                            openGalleryLauncher.launch("image/*")
+                        },
                         onHapticRequested = { type ->
                             performHapticFeedback(type)
                         },
@@ -119,25 +135,14 @@ class MainActivity : ComponentActivity() {
 
             if (!vibrator.hasVibrator()) return
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val effect = when (type) {
-                    "click" -> VibrationEffect.createOneShot(12, VibrationEffect.DEFAULT_AMPLITUDE)
-                    "scan_tick" -> VibrationEffect.createOneShot(22, 120)
-                    "success" -> VibrationEffect.createWaveform(longArrayOf(0, 30, 50, 60), -1)
-                    "error" -> VibrationEffect.createWaveform(longArrayOf(0, 80, 40, 80), -1)
-                    else -> VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE)
-                }
-                vibrator.vibrate(effect)
-            } else {
-                @Suppress("DEPRECATION")
-                when (type) {
-                    "click" -> vibrator.vibrate(12)
-                    "scan_tick" -> vibrator.vibrate(22)
-                    "success" -> vibrator.vibrate(longArrayOf(0, 30, 50, 60), -1)
-                    "error" -> vibrator.vibrate(longArrayOf(0, 80, 40, 80), -1)
-                    else -> vibrator.vibrate(15)
-                }
+            val effect = when (type) {
+                "click" -> VibrationEffect.createOneShot(12, VibrationEffect.DEFAULT_AMPLITUDE)
+                "scan_tick" -> VibrationEffect.createOneShot(22, 120)
+                "success" -> VibrationEffect.createWaveform(longArrayOf(0, 30, 50, 60), -1)
+                "error" -> VibrationEffect.createWaveform(longArrayOf(0, 80, 40, 80), -1)
+                else -> VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE)
             }
+            vibrator.vibrate(effect)
         } catch (e: Exception) {
             // Ignore if vibration fails
         }
@@ -157,6 +162,7 @@ class MainActivity : ComponentActivity() {
                         homeViewModel.uiState.collectLatest { state ->
                             if (state is com.example.myapplication.ui.state.UiState.Success) {
                                 activeSelectedGoal = state.data.selectedRecipe
+                                timerViewModel.setGoalTimer(state.data.selectedRecipe)
                                 val json = JSONObject().apply {
                                     put("type", "home")
                                     put("selectedRecipe", state.data.selectedRecipe)
@@ -199,6 +205,7 @@ class MainActivity : ComponentActivity() {
                                 put("type", "timer")
                                 put("remainingSeconds", state.remainingSeconds)
                                 put("isRunning", state.isRunning)
+                                put("isFinished", state.isFinished)
                                 put("formattedTime", state.formattedTime)
                                 put("title", state.title)
                             }.toString()
@@ -241,11 +248,13 @@ class AndroidBridge(
     private val timerViewModel: TimerViewModel,
     private val profileViewModel: ProfileViewModel,
     private val onCameraRequested: () -> Unit,
+    private val onGalleryRequested: () -> Unit,
     private val onHapticRequested: (String) -> Unit
 ) {
     @JavascriptInterface
     fun selectRecipe(recipe: String) {
         homeViewModel.selectRecipe(recipe)
+        timerViewModel.setGoalTimer(recipe)
     }
 
     @JavascriptInterface
@@ -279,6 +288,11 @@ class AndroidBridge(
     }
 
     @JavascriptInterface
+    fun openGallery() {
+        onGalleryRequested()
+    }
+
+    @JavascriptInterface
     fun triggerHaptic(type: String) {
         onHapticRequested(type)
     }
@@ -292,6 +306,7 @@ fun BulbaScanWebView(
     timerViewModel: TimerViewModel,
     profileViewModel: ProfileViewModel,
     onCameraRequested: () -> Unit,
+    onGalleryRequested: () -> Unit,
     onHapticRequested: (String) -> Unit,
     onWebViewCreated: (WebView) -> Unit,
     modifier: Modifier = Modifier
@@ -329,6 +344,7 @@ fun BulbaScanWebView(
                         timerViewModel = timerViewModel,
                         profileViewModel = profileViewModel,
                         onCameraRequested = onCameraRequested,
+                        onGalleryRequested = onGalleryRequested,
                         onHapticRequested = onHapticRequested
                     ),
                     "AndroidNative"
