@@ -77,6 +77,27 @@ function selectRecipeOption(recipeName) {
     }
 }
 
+// Переключение темы
+function toggleTheme(isDark) {
+    haptic('click');
+    if (isDark) {
+        document.body.classList.remove('light-theme');
+    } else {
+        document.body.classList.add('light-theme');
+    }
+    if (window.AndroidNative && window.AndroidNative.setDarkTheme) {
+        window.AndroidNative.setDarkTheme(isDark);
+    }
+}
+
+// Удаление сканирования из Room DB
+function deleteScanHistory(id) {
+    haptic('click');
+    if (window.AndroidNative && window.AndroidNative.deleteScan) {
+        window.AndroidNative.deleteScan(id);
+    }
+}
+
 // Закрывать дропдаун при клике вне его области
 document.addEventListener('click', function(e) {
     const wrap = document.querySelector('.recipe-selector-wrap');
@@ -192,9 +213,12 @@ window.onStateUpdate = function(rawJsonData) {
         } else if (data.type === 'timer') {
             const display = document.getElementById('time-text');
             const btn = document.getElementById('play-pause-btn');
+            const titleElem = document.querySelector('#screen-timer .timer-titles p');
+            if (titleElem && data.title) {
+                titleElem.textContent = data.title;
+            }
             if (display && data.formattedTime) {
                 display.textContent = data.formattedTime;
-                // Пульсация сердцебиения при оставшихся менее 10 секунд
                 if (data.remainingSeconds !== undefined && data.remainingSeconds <= 10 && data.remainingSeconds > 0) {
                     display.classList.add('heartbeat');
                 } else {
@@ -210,28 +234,56 @@ window.onStateUpdate = function(rawJsonData) {
             if (fill) fill.style.width = data.progressPercentage + '%';
             if (pct) pct.textContent = data.progressPercentage + '%';
 
-            // Тактильный тик при повышении прогресса сканирования
             if (data.progressPercentage > lastScanProgress && data.progressPercentage % 20 === 0) {
                 haptic('scan_tick');
             }
             lastScanProgress = data.progressPercentage;
 
-            // Если анализ завершен, отображаем вердикт из Kotlin и открываем экран вердикта
             if (data.isComplete && data.verdict) {
                 haptic(data.verdict.score >= 7 ? 'success' : 'error');
                 updateVerdictUi(data.verdict);
                 setTimeout(() => openScreen('verdict'), 450);
             }
         } else if (data.type === 'profile') {
-            const nameElem = document.querySelector('.user-display-name');
-            if (nameElem && data.name) {
-                nameElem.textContent = data.name;
+            document.querySelectorAll('.user-display-name').forEach(elem => {
+                if (data.name) elem.textContent = data.name;
+            });
+            if (data.isDarkTheme !== undefined) {
+                if (data.isDarkTheme) {
+                    document.body.classList.remove('light-theme');
+                } else {
+                    document.body.classList.add('light-theme');
+                }
+            }
+            if (data.scanHistory && Array.isArray(data.scanHistory)) {
+                renderScanHistory(data.scanHistory);
             }
         }
     } catch (e) {
         console.error("Error in onStateUpdate:", e);
     }
 };
+
+// Отображение списка истории из Room DB
+function renderScanHistory(historyList) {
+    const container = document.getElementById('scan-history-list');
+    if (!container) return;
+
+    if (historyList.length === 0) {
+        container.innerHTML = '<div class="empty-history">История сканирований пуста</div>';
+        return;
+    }
+
+    container.innerHTML = historyList.map(item => `
+        <div class="history-item-card">
+            <div class="history-item-info">
+                <strong>${item.varietyName || 'Клубень'} (${item.culinaryType || ''})</strong>
+                <span>★ ${item.score}/10 — ${new Date(item.timestamp).toLocaleDateString()}</span>
+            </div>
+            <button class="history-delete-btn" onclick="deleteScanHistory('${item.id}')">🗑️</button>
+        </div>
+    `).join('');
+}
 
 // Обновление элементов карточки вердикта
 function updateVerdictUi(verdict) {

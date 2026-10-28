@@ -3,18 +3,23 @@ package com.example.myapplication.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.Achievement
+import com.example.myapplication.data.model.Recipe
+import com.example.myapplication.data.model.ScanResult
 import com.example.myapplication.data.model.UserProfile
 import com.example.myapplication.data.repository.PotatoRepository
 import com.example.myapplication.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val userProfile: UserProfile = UserProfile(),
     val achievements: List<Achievement> = emptyList(),
-    val passwordMasked: String = "**********"
+    val scanHistory: List<ScanResult> = emptyList(),
+    val recipes: List<Recipe> = emptyList(),
+    val isDarkTheme: Boolean = true
 )
 
 class ProfileViewModel(
@@ -32,14 +37,20 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 _uiState.value = UiState.Loading
-                repository.getUserProfile().collect { profile ->
-                    val achievements = repository.getAchievements()
-                    _uiState.value = UiState.Success(
-                        ProfileUiState(
-                            userProfile = profile,
-                            achievements = achievements
-                        )
+                combine(
+                    repository.getUserProfile(),
+                    repository.getScanHistory(),
+                    repository.isDarkTheme
+                ) { profile, history, isDark ->
+                    ProfileUiState(
+                        userProfile = profile.copy(totalScansCount = history.size),
+                        achievements = repository.getAchievements(),
+                        scanHistory = history,
+                        recipes = repository.getRecipes(),
+                        isDarkTheme = isDark
                     )
+                }.collect { state ->
+                    _uiState.value = UiState.Success(state)
                 }
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Ошибка загрузки профиля")
@@ -54,6 +65,18 @@ class ProfileViewModel(
                 val currentProfile = currentState.data.userProfile
                 repository.updateUserProfile(newName, currentProfile.email)
             }
+        }
+    }
+
+    fun deleteScanHistoryItem(id: String) {
+        viewModelScope.launch {
+            repository.deleteScanResult(id)
+        }
+    }
+
+    fun toggleTheme(isDark: Boolean) {
+        viewModelScope.launch {
+            repository.setDarkTheme(isDark)
         }
     }
 }

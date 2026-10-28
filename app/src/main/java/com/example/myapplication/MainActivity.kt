@@ -44,6 +44,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.timer.TimerViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
@@ -221,6 +222,20 @@ class MainActivity : ComponentActivity() {
                                     put("name", state.data.userProfile.name)
                                     put("email", state.data.userProfile.email)
                                     put("totalScans", state.data.userProfile.totalScansCount)
+                                    put("isDarkTheme", state.data.isDarkTheme)
+
+                                    val historyArray = JSONArray()
+                                    state.data.scanHistory.forEach { scan ->
+                                        historyArray.put(JSONObject().apply {
+                                            put("id", scan.id)
+                                            put("varietyName", scan.varietyName)
+                                            put("culinaryType", scan.culinaryType)
+                                            put("score", scan.score)
+                                            put("verdictTitle", scan.verdictTitle)
+                                            put("timestamp", scan.timestamp)
+                                        })
+                                    }
+                                    put("scanHistory", historyArray)
                                 }.toString()
                                 sendStateToWebView(json)
                             }
@@ -280,6 +295,16 @@ class AndroidBridge(
     @JavascriptInterface
     fun updateProfileName(newName: String) {
         profileViewModel.updateName(newName)
+    }
+
+    @JavascriptInterface
+    fun deleteScan(id: String) {
+        profileViewModel.deleteScanHistoryItem(id)
+    }
+
+    @JavascriptInterface
+    fun setDarkTheme(isDark: Boolean) {
+        profileViewModel.toggleTheme(isDark)
     }
 
     @JavascriptInterface

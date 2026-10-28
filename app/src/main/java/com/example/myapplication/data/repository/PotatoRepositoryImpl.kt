@@ -1,20 +1,32 @@
 package com.example.myapplication.data.repository
 
+import com.example.myapplication.data.local.db.PotatoScanDao
+import com.example.myapplication.data.local.db.toDomainModel
+import com.example.myapplication.data.local.db.toEntity
 import com.example.myapplication.data.local.datastore.UserPreferencesRepository
 import com.example.myapplication.data.model.Achievement
 import com.example.myapplication.data.model.CookingGoal
+import com.example.myapplication.data.model.Ingredient
 import com.example.myapplication.data.model.PotatoVariety
+import com.example.myapplication.data.model.Recipe
+import com.example.myapplication.data.model.RecipeStep
 import com.example.myapplication.data.model.ScanResult
 import com.example.myapplication.data.model.UserProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 class PotatoRepositoryImpl(
+    private val scanDao: PotatoScanDao,
     private val userPreferences: UserPreferencesRepository
 ) : PotatoRepository {
+
+    override val isDarkTheme: Flow<Boolean> = userPreferences.isDarkTheme
+
+    override suspend fun setDarkTheme(isDark: Boolean) {
+        userPreferences.setDarkTheme(isDark)
+    }
 
     private val sampleVarieties = listOf(
         PotatoVariety(
@@ -24,7 +36,7 @@ class PotatoRepositoryImpl(
             starchPercentage = 17,
             fleshColor = "Светло-желтая",
             dranikScore = 10,
-            description = "Отличный выбор! Высокое содержание крахмала даст плотное тесто и идеальную золотистую корочку."
+            description = "Белорусский флагманский сорт. Высокое содержание крахмала даст густое тесто и идеальную хрустящую корочку."
         ),
         PotatoVariety(
             id = "v2",
@@ -33,7 +45,7 @@ class PotatoRepositoryImpl(
             starchPercentage = 13,
             fleshColor = "Желтая",
             dranikScore = 6,
-            description = "Идеальна для жарки ломтиками и запекания. Сохраняет форму при термической обработке."
+            description = "Немецкий гладкий сорт. Сохраняет форму ломтиков при жарке, запекании и в салатах."
         ),
         PotatoVariety(
             id = "v3",
@@ -42,24 +54,34 @@ class PotatoRepositoryImpl(
             starchPercentage = 18,
             fleshColor = "Желтая",
             dranikScore = 9,
-            description = "Прекрасный сорт для пюре и запеканок."
-        )
-    )
-
-    private val historyState = MutableStateFlow(
-        listOf(
-            ScanResult(
-                id = "scan_101",
-                timestamp = System.currentTimeMillis() - 86400000,
-                varietyName = "МАНИФЕСТ",
-                culinaryType = "C (универсальный)",
-                starchPercentage = 17,
-                fleshColor = "Светло-желтая",
-                accuracyPercentage = 96,
-                score = 10,
-                verdictTitle = "ИДЕАЛЬНО ДЛЯ ДРАНИКОВ",
-                verdictText = "Густое тесто, хрустящая корочка"
-            )
+            description = "Популярный белорусский поздний сорт. Идеален для воздушного пюре и запеканок."
+        ),
+        PotatoVariety(
+            id = "v4",
+            name = "ГАЛА",
+            culinaryType = "B (универсальный)",
+            starchPercentage = 14,
+            fleshColor = "Темно-желтая",
+            dranikScore = 8,
+            description = "Универсальный столовый сорт с прекрасным вкусом и устойчивостью к потемнению мякоти."
+        ),
+        PotatoVariety(
+            id = "v5",
+            name = "БРИЗ",
+            culinaryType = "B (слаборассыпчатый)",
+            starchPercentage = 15,
+            fleshColor = "Желтая",
+            dranikScore = 8,
+            description = "Белорусский среднеранний сорт с отличной развариваемостью для большинства блюд."
+        ),
+        PotatoVariety(
+            id = "v6",
+            name = "ВЕКТОР",
+            culinaryType = "C (высококрахмалистый)",
+            starchPercentage = 19,
+            fleshColor = "Желтая",
+            dranikScore = 10,
+            description = "Рекордсмен по содержанию крахмала. Отлично подходит для крахмала, драников и фри."
         )
     )
 
@@ -72,12 +94,18 @@ class PotatoRepositoryImpl(
 
     override fun getPotatoVarieties(): List<PotatoVariety> = sampleVarieties
 
-    override fun getScanHistory(): Flow<List<ScanResult>> = historyState
+    override fun getScanHistory(): Flow<List<ScanResult>> {
+        return scanDao.getAllScans().map { entities ->
+            entities.map { it.toDomainModel() }
+        }
+    }
 
     override suspend fun saveScanResult(result: ScanResult) {
-        val currentList = historyState.value.toMutableList()
-        currentList.add(0, result)
-        historyState.value = currentList
+        scanDao.insertScan(result.toEntity())
+    }
+
+    override suspend fun deleteScanResult(id: String) {
+        scanDao.deleteScanById(id)
     }
 
     override fun getUserProfile(): Flow<UserProfile> {
@@ -86,7 +114,7 @@ class PotatoRepositoryImpl(
                 name = name,
                 email = "expert@bulbascan.by",
                 achievementsCount = 6,
-                totalScansCount = historyState.value.size
+                totalScansCount = 10
             )
         }
     }
@@ -152,7 +180,6 @@ class PotatoRepositoryImpl(
                 )
             }
             else -> {
-                // По умолчанию или "Драники"
                 ScanResult(
                     id = "scan_$now",
                     timestamp = now,
@@ -169,4 +196,49 @@ class PotatoRepositoryImpl(
             }
         }
     }
+
+    override fun getRecipes(): List<Recipe> = listOf(
+        Recipe(
+            id = "r1",
+            title = "Классические белорусские драники",
+            description = "Хрустящие снаружи и сочные внутри драники без добавления лишней муки.",
+            prepTimeMinutes = 25,
+            difficulty = "Средняя",
+            baseServings = 2,
+            ingredients = listOf(
+                Ingredient("Картофель (сорт Манифест)", 800.0, "г"),
+                Ingredient("Лук репчатый", 150.0, "г"),
+                Ingredient("Яйцо куриное", 1.0, "шт"),
+                Ingredient("Мука пшеничная", 20.0, "г"),
+                Ingredient("Соль и свежемолотый перец", 1.0, "по вкусу"),
+                Ingredient("Масло растительное для жарки", 50.0, "мл")
+            ),
+            steps = listOf(
+                RecipeStep(1, "Подготовка", "Очистить картофель и лук. Натереть на мелкой картофельной тёрке («звёздочки»), чередуя картофель с луком, чтобы тесто не темнело."),
+                RecipeStep(2, "Отжатие сока", "Откинуть натёртую массу на сито и дать стечь лишнему соку в течение 2 минут.", 120),
+                RecipeStep(3, "Замес теста", "Добавить яйцо, муку, соль, перец и аккуратно перемешать ложкой."),
+                RecipeStep(4, "Разогрев сковороды", "Разогреть сковороду с растительным маслом на среднем огне.", 180),
+                RecipeStep(5, "Жарка", "Выкладывать тесто ложкой в виде оладий и жарить по 3-4 минуты с каждой стороны до золотистой корочки.", 240)
+            )
+        ),
+        Recipe(
+            id = "r2",
+            title = "Нежное картофельное пюре",
+            description = "Воздушное пюре без комочков с добавлением сливочного масла и тёплого молока.",
+            prepTimeMinutes = 30,
+            difficulty = "Легкая",
+            baseServings = 2,
+            ingredients = listOf(
+                Ingredient("Картофель (сорт Журавинка)", 1000.0, "г"),
+                Ingredient("Молоко 3.2%", 150.0, "мл"),
+                Ingredient("Масло сливочное 82.5%", 60.0, "г"),
+                Ingredient("Соль", 10.0, "г")
+            ),
+            steps = listOf(
+                RecipeStep(1, "Варка", "Очистить картофель, нарезать крупными кусками, залить холодной водой, посолить и варить 20 минут до мягкости.", 1200),
+                RecipeStep(2, "Прогрев молока", "Пока варится картофель, подогреть молоко со сливочным маслом."),
+                RecipeStep(3, "Пюрирование", "Слить воду, тщательно размять картофель толкушкой и постепенно влить горячее молоко с маслом до пышности.")
+            )
+        )
+    )
 }
