@@ -10,7 +10,9 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
     private var currentWebView: WebView? = null
     private var activeSelectedGoal: String = "Драники"
     private var analysisViewModelRef: AnalysisViewModel? = null
+    private var isPageLoaded = false
 
     // Нативная съемка камерой
     private val takePicturePreviewLauncher = registerForActivityResult(
@@ -118,6 +121,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onWebViewCreated = { webView ->
                             currentWebView = webView
+                        },
+                        onPageLoaded = {
+                            isPageLoaded = true
                         },
                         modifier = Modifier
                             .fillMaxSize()
@@ -413,6 +419,7 @@ fun BulbaScanWebView(
     onHapticRequested: (String) -> Unit,
     onShareRequested: (String) -> Unit,
     onWebViewCreated: (WebView) -> Unit,
+    onPageLoaded: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var webView: WebView? by remember { mutableStateOf(null) }
@@ -431,11 +438,14 @@ fun BulbaScanWebView(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
 
+                @Suppress("DEPRECATION")
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     allowFileAccess = true
                     allowContentAccess = true
+                    allowFileAccessFromFileURLs = true
+                    allowUniversalAccessFromFileURLs = true
                     useWideViewPort = true
                     loadWithOverviewMode = true
                     mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -459,10 +469,16 @@ fun BulbaScanWebView(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         canGoBack = view?.canGoBack() == true
+                        onPageLoaded()
                     }
                 }
 
                 webChromeClient = object : WebChromeClient() {
+                    override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                        Log.d("BulbaWebView", "${consoleMessage?.message()} -- line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}")
+                        return true
+                    }
+
                     override fun onPermissionRequest(request: PermissionRequest?) {
                         request?.grant(request.resources)
                     }
