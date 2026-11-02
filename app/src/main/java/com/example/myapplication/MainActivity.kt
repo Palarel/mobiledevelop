@@ -1,6 +1,5 @@
 package com.example.myapplication
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -10,61 +9,29 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.util.Log
-import android.view.ViewGroup
-import android.webkit.ConsoleMessage
-import android.webkit.JavascriptInterface
-import android.webkit.PermissionRequest
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.AppViewModelProvider
 import com.example.myapplication.ui.analysis.AnalysisViewModel
 import com.example.myapplication.ui.home.HomeViewModel
 import com.example.myapplication.ui.profile.ProfileViewModel
+import com.example.myapplication.ui.screens.BulbaNativeApp
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.timer.TimerViewModel
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
 
-    private var currentWebView: WebView? = null
     private var activeSelectedGoal: String = "Драники"
     private var analysisViewModelRef: AnalysisViewModel? = null
-    private var isPageLoaded = false
 
     // Нативная съемка камерой
     private val takePicturePreviewLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         if (bitmap != null) {
-            currentWebView?.post {
-                currentWebView?.evaluateJavascript("window.openScreen('analysis');", null)
-            }
             analysisViewModelRef?.startAnalysis(activeSelectedGoal)
         }
     }
@@ -74,9 +41,6 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            currentWebView?.post {
-                currentWebView?.evaluateJavascript("window.openScreen('analysis');", null)
-            }
             analysisViewModelRef?.startAnalysis(activeSelectedGoal)
         }
     }
@@ -87,49 +51,31 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val homeViewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
-                    val analysisViewModel: AnalysisViewModel = viewModel(factory = AppViewModelProvider.Factory)
-                    val timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
-                    val profileViewModel: ProfileViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val homeViewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val analysisViewModel: AnalysisViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val profileViewModel: ProfileViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
-                    analysisViewModelRef = analysisViewModel
+                analysisViewModelRef = analysisViewModel
 
-                    ObserveViewModelStates(
-                        homeViewModel = homeViewModel,
-                        analysisViewModel = analysisViewModel,
-                        timerViewModel = timerViewModel,
-                        profileViewModel = profileViewModel
-                    )
-
-                    BulbaScanWebView(
-                        homeViewModel = homeViewModel,
-                        analysisViewModel = analysisViewModel,
-                        timerViewModel = timerViewModel,
-                        profileViewModel = profileViewModel,
-                        onCameraRequested = {
-                            takePicturePreviewLauncher.launch(null)
-                        },
-                        onGalleryRequested = {
-                            openGalleryLauncher.launch("image/*")
-                        },
-                        onHapticRequested = { type ->
-                            performHapticFeedback(type)
-                        },
-                        onShareRequested = { shareText ->
-                            shareVerdict(shareText)
-                        },
-                        onWebViewCreated = { webView ->
-                            currentWebView = webView
-                        },
-                        onPageLoaded = {
-                            isPageLoaded = true
-                        },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    )
-                }
+                BulbaNativeApp(
+                    homeViewModel = homeViewModel,
+                    analysisViewModel = analysisViewModel,
+                    timerViewModel = timerViewModel,
+                    profileViewModel = profileViewModel,
+                    onCameraRequested = {
+                        takePicturePreviewLauncher.launch(null)
+                    },
+                    onGalleryRequested = {
+                        openGalleryLauncher.launch("image/*")
+                    },
+                    onShareRequested = { shareText ->
+                        shareVerdict(shareText)
+                    },
+                    onHapticRequested = { type ->
+                        performHapticFeedback(type)
+                    }
+                )
             }
         }
     }
@@ -169,328 +115,7 @@ class MainActivity : ComponentActivity() {
             }
             vibrator.vibrate(effect)
         } catch (e: Exception) {
-            // Ignore if vibration fails
+            // Safe fallback
         }
     }
-
-    @Composable
-    private fun ObserveViewModelStates(
-        homeViewModel: HomeViewModel,
-        analysisViewModel: AnalysisViewModel,
-        timerViewModel: TimerViewModel,
-        profileViewModel: ProfileViewModel
-    ) {
-        LaunchedEffect(Unit) {
-            lifecycleScope.launch {
-                repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    launch {
-                        homeViewModel.uiState.collectLatest { state ->
-                            if (state is com.example.myapplication.ui.state.UiState.Success) {
-                                activeSelectedGoal = state.data.selectedRecipe
-                                timerViewModel.setGoalTimer(state.data.selectedRecipe)
-                                val json = JSONObject().apply {
-                                    put("type", "home")
-                                    put("selectedRecipe", state.data.selectedRecipe)
-                                    put("isAiCalibrated", state.data.isAiCalibrated)
-                                }.toString()
-                                sendStateToWebView(json)
-                            }
-                        }
-                    }
-
-                    launch {
-                        analysisViewModel.uiState.collectLatest { state ->
-                            val json = JSONObject().apply {
-                                put("type", "analysis")
-                                put("progressPercentage", state.progressPercentage)
-                                put("isComplete", state.isComplete)
-                                put("statusText", state.statusText)
-                                state.scanVerdict?.let { verdict ->
-                                    val verdictObj = JSONObject().apply {
-                                        put("id", verdict.id)
-                                        put("varietyName", verdict.varietyName)
-                                        put("culinaryType", verdict.culinaryType)
-                                        put("starchPercentage", verdict.starchPercentage)
-                                        put("fleshColor", verdict.fleshColor)
-                                        put("accuracyPercentage", verdict.accuracyPercentage)
-                                        put("score", verdict.score)
-                                        put("verdictTitle", verdict.verdictTitle)
-                                        put("verdictText", verdict.verdictText)
-                                        put("warningMessage", verdict.warningMessage ?: "")
-                                    }
-                                    put("verdict", verdictObj)
-                                }
-                            }.toString()
-                            sendStateToWebView(json)
-                        }
-                    }
-
-                    launch {
-                        timerViewModel.uiState.collectLatest { state ->
-                            val json = JSONObject().apply {
-                                put("type", "timer")
-                                put("remainingSeconds", state.remainingSeconds)
-                                put("isRunning", state.isRunning)
-                                put("isFinished", state.isFinished)
-                                put("formattedTime", state.formattedTime)
-                                put("title", state.title)
-                            }.toString()
-                            sendStateToWebView(json)
-                        }
-                    }
-
-                    launch {
-                        profileViewModel.uiState.collectLatest { state ->
-                            if (state is com.example.myapplication.ui.state.UiState.Success) {
-                                val json = JSONObject().apply {
-                                    put("type", "profile")
-                                    put("name", state.data.userProfile.name)
-                                    put("email", state.data.userProfile.email)
-                                    put("isLoggedIn", state.data.userProfile.isLoggedIn)
-                                    put("totalScans", state.data.userProfile.totalScansCount)
-                                    put("isDarkTheme", state.data.isDarkTheme)
-                                    put("authMessage", state.data.authMessage ?: "")
-
-                                    val analyticsObj = JSONObject().apply {
-                                        put("totalScans", state.data.analytics.totalScans)
-                                        put("dranikiCount", state.data.analytics.dranikiCount)
-                                        put("pureeCount", state.data.analytics.pureeCount)
-                                        put("fryCount", state.data.analytics.fryCount)
-                                        put("averageStarch", String.format("%.1f", state.data.analytics.averageStarch))
-                                        put("topVariety", state.data.analytics.topVariety)
-                                    }
-                                    put("analytics", analyticsObj)
-
-                                    val achievementsArray = JSONArray()
-                                    state.data.achievements.forEach { ach ->
-                                        achievementsArray.put(JSONObject().apply {
-                                            put("id", ach.id)
-                                            put("title", ach.title)
-                                            put("description", ach.description)
-                                            put("icon", ach.icon)
-                                            put("isUnlocked", ach.isUnlocked)
-                                            put("currentProgress", ach.currentProgress)
-                                            put("targetProgress", ach.targetProgress)
-                                        })
-                                    }
-                                    put("achievements", achievementsArray)
-
-                                    val historyArray = JSONArray()
-                                    state.data.scanHistory.forEach { scan ->
-                                        historyArray.put(JSONObject().apply {
-                                            put("id", scan.id)
-                                            put("varietyName", scan.varietyName)
-                                            put("culinaryType", scan.culinaryType)
-                                            put("score", scan.score)
-                                            put("verdictTitle", scan.verdictTitle)
-                                            put("userNote", scan.userNote ?: "")
-                                            put("isFavorite", scan.isFavorite)
-                                            put("timestamp", scan.timestamp)
-                                        })
-                                    }
-                                    put("scanHistory", historyArray)
-                                }.toString()
-                                sendStateToWebView(json)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun sendStateToWebView(jsonString: String) {
-        val escapedJson = jsonString.replace("'", "\\'").replace("\n", "\\n")
-        currentWebView?.post {
-            currentWebView?.evaluateJavascript(
-                "if (window.onStateUpdate) { window.onStateUpdate('$escapedJson'); }",
-                null
-            )
-        }
-    }
-}
-
-class AndroidBridge(
-    private val homeViewModel: HomeViewModel,
-    private val analysisViewModel: AnalysisViewModel,
-    private val timerViewModel: TimerViewModel,
-    private val profileViewModel: ProfileViewModel,
-    private val onCameraRequested: () -> Unit,
-    private val onGalleryRequested: () -> Unit,
-    private val onHapticRequested: (String) -> Unit,
-    private val onShareRequested: (String) -> Unit
-) {
-    @JavascriptInterface
-    fun selectRecipe(recipe: String) {
-        homeViewModel.selectRecipe(recipe)
-        timerViewModel.setGoalTimer(recipe)
-    }
-
-    @JavascriptInterface
-    fun startAnalysis() {
-        analysisViewModel.startAnalysis()
-    }
-
-    @JavascriptInterface
-    fun cancelAnalysis() {
-        analysisViewModel.cancelAnalysis()
-    }
-
-    @JavascriptInterface
-    fun toggleTimer() {
-        timerViewModel.toggleTimer()
-    }
-
-    @JavascriptInterface
-    fun resetTimer() {
-        timerViewModel.resetTimer()
-    }
-
-    @JavascriptInterface
-    fun updateProfileName(newName: String) {
-        profileViewModel.updateName(newName)
-    }
-
-    @JavascriptInterface
-    fun login(email: String, pass: String) {
-        profileViewModel.login(email, pass)
-    }
-
-    @JavascriptInterface
-    fun register(name: String, email: String, pass: String) {
-        profileViewModel.register(name, email, pass)
-    }
-
-    @JavascriptInterface
-    fun logout() {
-        profileViewModel.logout()
-    }
-
-    @JavascriptInterface
-    fun saveScanNote(id: String, note: String) {
-        profileViewModel.saveScanNote(id, note)
-    }
-
-    @JavascriptInterface
-    fun toggleScanFavorite(id: String, isFav: Boolean) {
-        profileViewModel.toggleScanFavorite(id, isFav)
-    }
-
-    @JavascriptInterface
-    fun deleteScan(id: String) {
-        profileViewModel.deleteScanHistoryItem(id)
-    }
-
-    @JavascriptInterface
-    fun setDarkTheme(isDark: Boolean) {
-        profileViewModel.toggleTheme(isDark)
-    }
-
-    @JavascriptInterface
-    fun shareVerdict(text: String) {
-        onShareRequested(text)
-    }
-
-    @JavascriptInterface
-    fun openCamera() {
-        onCameraRequested()
-    }
-
-    @JavascriptInterface
-    fun openGallery() {
-        onGalleryRequested()
-    }
-
-    @JavascriptInterface
-    fun triggerHaptic(type: String) {
-        onHapticRequested(type)
-    }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-fun BulbaScanWebView(
-    homeViewModel: HomeViewModel,
-    analysisViewModel: AnalysisViewModel,
-    timerViewModel: TimerViewModel,
-    profileViewModel: ProfileViewModel,
-    onCameraRequested: () -> Unit,
-    onGalleryRequested: () -> Unit,
-    onHapticRequested: (String) -> Unit,
-    onShareRequested: (String) -> Unit,
-    onWebViewCreated: (WebView) -> Unit,
-    onPageLoaded: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var webView: WebView? by remember { mutableStateOf(null) }
-    var canGoBack by remember { mutableStateOf(false) }
-
-    BackHandler(enabled = canGoBack) {
-        webView?.goBack()
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-
-                @Suppress("DEPRECATION")
-                settings.apply {
-                    javaScriptEnabled = true
-                    domStorageEnabled = true
-                    allowFileAccess = true
-                    allowContentAccess = true
-                    allowFileAccessFromFileURLs = true
-                    allowUniversalAccessFromFileURLs = true
-                    useWideViewPort = true
-                    loadWithOverviewMode = true
-                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                }
-
-                addJavascriptInterface(
-                    AndroidBridge(
-                        homeViewModel = homeViewModel,
-                        analysisViewModel = analysisViewModel,
-                        timerViewModel = timerViewModel,
-                        profileViewModel = profileViewModel,
-                        onCameraRequested = onCameraRequested,
-                        onGalleryRequested = onGalleryRequested,
-                        onHapticRequested = onHapticRequested,
-                        onShareRequested = onShareRequested
-                    ),
-                    "AndroidNative"
-                )
-
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        canGoBack = view?.canGoBack() == true
-                        onPageLoaded()
-                    }
-                }
-
-                webChromeClient = object : WebChromeClient() {
-                    override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                        Log.d("BulbaWebView", "${consoleMessage?.message()} -- line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}")
-                        return true
-                    }
-
-                    override fun onPermissionRequest(request: PermissionRequest?) {
-                        request?.grant(request.resources)
-                    }
-                }
-
-                loadUrl("file:///android_asset/index.html")
-                webView = this
-                onWebViewCreated(this)
-            }
-        },
-        update = {
-            webView = it
-        }
-    )
 }
