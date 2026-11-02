@@ -27,5 +27,10 @@ object AppViewModelProvider {
     }
 }
 
-fun CreationExtras.bulbaApplication(): BulbaApplication =
-    (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as BulbaApplication)
+fun CreationExtras.bulbaApplication(): BulbaApplication {
+    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+    if (app is BulbaApplication) {
+        return app
+    }
+    error("Application must be BulbaApplication. Found: $app")
+}
