@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -7,11 +7,12 @@ espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.8.0"
 kotlin = "2.2.10"
+ksp = "2.3.6"
 composeBom = "2026.02.01"
 navigationCompose = "2.8.8"
 lifecycleViewModelCompose = "2.8.7"
 datastore = "1.1.2"
-room = "2.6.1"
+room = "2.8.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,3 +39,4 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
